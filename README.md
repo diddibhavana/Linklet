@@ -1,5 +1,5 @@
 # Linklet
-
+<p align="center"> <img src="web/public/Development.png" alt="Linklet Application Preview" width="900"> </p>
 Linklet is a full stack short link service: create memorable URLs, browse the recent links in a small dashboard, and redirect visitors through a fast cache backed by durable storage. It is built as a Go modular monolith with a Next.js frontend. PostgreSQL is the source of truth, Redis is an optional cache, and Kafka receives creation events through a transactional outbox.
 
 ## Architecture
