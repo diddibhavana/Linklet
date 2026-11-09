@@ -1,0 +1,90 @@
+openapi: 3.0.3
+info:
+  title: Linklet API
+  version: 1.0.0
+  description: Create short links, list links, and redirect visitors.
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/v1/links:
+    post:
+      summary: Create a link
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              additionalProperties: false
+              properties:
+                url: { type: string, format: uri, maxLength: 2048 }
+                code: { type: string, pattern: '^[A-Za-z0-9_-]{4,32}$' }
+      responses:
+        '201':
+          description: Link created or idempotent response replayed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Link' }
+        '400': { description: Invalid request, cursor, or idempotency key }
+        '409': { description: Short code already exists }
+        '422': { description: Invalid destination or custom code }
+        '503': { description: Database unavailable }
+    get:
+      summary: List newest links using a cursor
+      parameters:
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+      responses:
+        '200':
+          description: Link page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Link' } }
+                  next_cursor: { type: string }
+        '400': { description: Invalid query parameters }
+        '503': { description: Database unavailable }
+  /r/{code}:
+    get:
+      summary: Redirect to the saved destination
+      parameters:
+        - in: path
+          name: code
+          required: true
+          schema: { type: string }
+      responses:
+        '302': { description: Redirect response }
+        '404': { description: Link does not exist }
+  /healthz:
+    get:
+      summary: Process liveness
+      responses:
+        '200': { description: Process is alive }
+  /readyz:
+    get:
+      summary: Dependency readiness
+      responses:
+        '200': { description: Dependencies are ready }
+        '503': { description: A dependency is unavailable }
+components:
+  schemas:
+    Link:
+      type: object
+      required: [id, code, url, created_at]
+      properties:
+        id: { type: integer, format: int64 }
+        code: { type: string }
+        url: { type: string, format: uri }
+        created_at: { type: string, format: date-time }

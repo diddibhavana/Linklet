@@ -1,0 +1,15 @@
+{
+  "title": "Linklet overview",
+  "uid": "linklet-overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "panels": [
+    {"id":1,"type":"stat","title":"HTTP request rate","gridPos":{"h":5,"w":8,"x":0,"y":0},"targets":[{"expr":"rate(linklet_http_requests_total[5m])","refId":"A"}]},
+    {"id":2,"type":"stat","title":"Create attempts","gridPos":{"h":5,"w":8,"x":8,"y":0},"targets":[{"expr":"linklet_create_attempts_total","refId":"A"}]},
+    {"id":3,"type":"stat","title":"Outbox backlog","gridPos":{"h":5,"w":8,"x":16,"y":0},"targets":[{"expr":"linklet_outbox_backlog","refId":"A"}]},
+    {"id":4,"type":"stat","title":"Links created","gridPos":{"h":5,"w":8,"x":0,"y":5},"targets":[{"expr":"linklet_links_created_total","refId":"A"}]},
+    {"id":5,"type":"stat","title":"Redirects served","gridPos":{"h":5,"w":8,"x":8,"y":5},"targets":[{"expr":"linklet_redirects_total","refId":"A"}]},
+    {"id":6,"type":"stat","title":"HTTP requests","gridPos":{"h":5,"w":8,"x":16,"y":5},"targets":[{"expr":"linklet_http_requests_total","refId":"A"}]}
+  ]
+}

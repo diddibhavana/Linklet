@@ -1,0 +1,78 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to your Neon PostgreSQL connection string}
+      REDIS_URL: redis://redis:6379/0
+      KAFKA_BROKERS: kafka:9092
+      HTTP_ADDR: :8080
+      FRONTEND_ORIGIN: http://localhost:3000
+      DB_MAX_OPEN: ${DB_MAX_OPEN:-10}
+      DB_MAX_IDLE: ${DB_MAX_IDLE:-5}
+    ports: ["8080:8080"]
+    depends_on:
+      redis: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    networks: [linklet]
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8080
+        NEXT_PUBLIC_LINK_BASE_URL: http://localhost:8080
+    ports: ["3000:3000"]
+    depends_on:
+      api: { condition: service_healthy }
+    networks: [linklet]
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    volumes: [redis_data:/data]
+    networks: [linklet]
+  kafka:
+    image: redpandadata/redpanda:v25.1.7
+    command: ["redpanda", "start", "--mode", "dev-container", "--smp", "1", "--memory", "1G", "--overprovisioned", "--node-id", "0", "--kafka-addr", "internal://0.0.0.0:9092,external://0.0.0.0:19092", "--advertise-kafka-addr", "internal://kafka:9092,external://localhost:19092"]
+    ports: ["19092:19092"]
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy: true'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    volumes: [kafka_data:/var/lib/redpanda/data]
+    networks: [linklet]
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    volumes: [./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro]
+    ports: ["9090:9090"]
+    depends_on: [api]
+    networks: [linklet]
+  grafana:
+    image: grafana/grafana:12.1.1
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3001:3000"]
+    depends_on: [prometheus]
+    networks: [linklet]
+
+networks:
+  linklet:
+    driver: bridge
+volumes:
+  redis_data:
+  kafka_data:
+  grafana_data:

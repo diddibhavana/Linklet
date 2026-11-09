@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: Linklet
+    folder: Linklet
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards
